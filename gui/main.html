@@ -1,0 +1,211 @@
+<head>
+    <script src="/eel.js"></script>
+    <script src="progressbar.min.js"></script>
+    <script src="main.js"></script>
+</head>
+
+<style>
+.hostArea{
+    background-color: rgb(51, 46, 46);
+    padding-top: 4px;
+    color: rgb(182, 182, 182);
+}
+.fileArea{
+    background-color: rgb(129, 89, 89);
+    padding-top: 4px;
+    color: rgb(182, 182, 182); 
+}
+.host{
+    border-top: #500a0a 1px solid;
+    border-bottom: #500a0a 1px solid;
+    margin-top: 3px;
+    padding: 3px;
+    font-size: 20px;
+}
+.host:hover{
+    border-top: #790d0d 2px solid;
+    border-bottom: #790d0d 2px solid;
+    cursor: pointer;
+}
+.host.disabled{
+    background-color: grey;
+}
+.host.disabled:hover{
+    cursor:not-allowed;
+}
+.host.selected{
+    background-color: #401706;
+}
+button{
+    margin: 4px;
+    border-radius: 4px;
+    width: 30px;
+    height: 30px;
+}
+body{
+    margin: 0px;
+    background-color: black;
+}
+html{
+    overflow: hidden;
+}
+#host_server{
+    width: 100px;
+    height: 40px;
+}
+.file{
+    width: 33%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    margin: 2px;
+    background-color: #481919;
+    border-radius: 4px;
+    padding: 4px;
+}
+.file:hover{
+    background-color: #790d0d;
+    cursor: pointer;
+}
+.queueArea{
+    background-color: rgb(64 30 30);
+    padding-top: 4px;
+    color: rgb(182, 182, 182); 
+}
+*{
+    white-space: nowrap;
+}
+.queue_item{
+    background-color: #232323;
+    margin: 4px;
+    padding: 6px;
+    border: 1px solid #580303;
+    border-radius: 4px;
+    user-select: none;
+    width: 90%;
+}
+.queue_item div{
+    display: flex;
+}
+.q_text_elem{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 3
+}
+.q_server_elem{
+    font-size: 10px;
+    flex: 1
+}
+.progress{
+    flex: 1
+}
+.q_top{
+    text-align: center;
+    vertical-align: middle;
+    margin-bottom: 1px;
+    line-height: 21px;
+}
+.pause{
+    cursor: pointer;
+    flex: .4
+}
+.remove{
+    flex: .4;
+    cursor: pointer;
+}
+.q_data div{
+    flex: 1;
+}
+</style>
+
+<div class="main" style="height: 99%; display: flex;">
+    <div class="hostArea" style="height: 100%; flex: 1">
+        <div style="height: 70%">
+            <div class="topHostArea" style="width: 100%; font-size: 24px;" align="center">
+                Hosts
+            </div>
+            <form style="width: 80%; margin-left: 10%;" onsubmit="addHost(); return false;">
+                <input id="addIP" type="text" minlength="7" maxlength="15" size="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$" style="width: 100%;" placeholder="127.0.0.0">
+            </form>
+            <div id="hosts">
+
+            </div>
+        </div>
+        <div style="height: 30%; border: 1px solid black;" align="center">
+            <div style="font-size: 20px; margin-top: 4px;">Host Server</div>
+            <form style="width: 100%;" onsubmit="hostServer(); return false;">
+                <input id="hostIP" type="text" minlength="7" maxlength="15" size="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$" style="width: 100%;" placeholder="127.0.0.0">
+            </form>
+            <div id="hostingServer" style="color: green; font-size: 24px;" hidden>
+                Hosting Server...
+            </div>
+            
+        </div>
+    </div>
+    <div class="fileArea" style="height: 100%; flex: 3">
+        <div class="topFilesArea" style="width: 100%; font-size: 24px;" align="center">
+            Files
+        </div>
+        <div id="files"></div>
+    </div>
+
+    <div class="queueArea" style="height: 100%; flex: 2">
+        <div class="topQueueArea" style="width: 100%; font-size: 24px;" align="center">
+            Queue
+        </div>
+        <div id="queue"></div>
+    </div>
+
+
+</div>
+
+<script>
+    loadHosts();
+    checkHosting();
+    refreshQueueForever();
+    let selected_ip = null;
+    document.addEventListener('click',function(e){
+    if(! e.target || e.target.classList.contains("disabled")){
+
+    }
+    if(e.target.classList.contains("host")){
+          selected_ip = e.target.id;
+          for(let i of document.getElementsByClassName("host")){
+              if(i == e.target){
+                i.classList.add("selected");
+              }else{
+                i.classList.remove("selected");
+              }
+              i.classList.add("disabled")
+              
+          }
+          clearFiles();
+          getFiles(e.target.id);
+          return;
+     }
+    else if(e.target.classList.contains("file")){
+        e.target.classList.add("disabled")
+        addToQueue(e.target.id, selected_ip)
+        e.target.classList.remove("disabled")
+    }
+    else if(e.target.classList.contains("pause")){
+        e.target.classList.add("disabled");
+        pauseQueueAlternate(e.target.parentElement.parentElement.id);
+        e.target.classList.remove("disabled");
+    }
+    else if(e.target.classList.contains("remove")){
+        e.target.classList.add("disabled");
+        removeQueue(e.target.parentElement.parentElement.id);
+        e.target.classList.remove("disabled");
+    }
+    refreshQueue();
+ });
+    document.addEventListener('contextmenu', function(e) {
+        if(e.target && e.target.classList.contains("host")){
+            e.preventDefault();
+            removeHost(e.target.id);
+            return false;
+        }
+
+    }, false);
+    // document.addEventListener('contextmenu', event => event.preventDefault());
+</script>
