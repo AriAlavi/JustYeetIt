@@ -18,13 +18,13 @@ How do I use this? (Transfer files to a friend)
 FTP servers require port forwarding and technical knowledge for the host. Additionally, pausing the download is not required.
 
 **Filezilla**
-Filezilla makes setting up an FTP server, but still requires port forwarding on the part of the host.
+Filezilla makes setting up an FTP server easier, but still requires port forwarding on the part of the host.
 
 **Windows Network Sharing**
 Windows Network Sharing does not support pausing downloads. Further, it requires you to create a windows account on your PC for the person who wishes to download the file.
 
 **Torrent Software**
-While torrents were created exactly for this purpose. They still require technical knowledge and have a stigma attached to them. If you and your friends know how to operate private torrents. I suggest their use over this program.
+While torrents were created exactly for this purpose, they still require technical knowledge and have a stigma attached to them. If you and your friends know how to operate private torrents. I suggest their use over this program.
 
 **Google Drive**
 Google Drive places a 15GB cap on download speed and requires a two part "upload" on the part of the host and "download" on the part of the friend. A direct transfer is significantly faster in the use case of file transfer to a friend. 
