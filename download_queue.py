@@ -3,6 +3,7 @@ from network import INCOMPLETE_FILES_LOCATION, checkCorrectFile, Client
 from multiprocessing import Queue, Manager
 from threading import Thread
 import os
+import sys
 import time
 import asyncio
 import json
@@ -96,7 +97,7 @@ class DownloadQueue():
     def createDownloads(self):
         downloads = getToDownload(self.data)
         for download in downloads:
-            thread = Thread(target=downloadFromProgress, args=(download, self.interrupt, self.actionQ))
+            thread = Thread(target=downloadFromProgress, args=(download, self.interrupt, self.actionQ, self))
             self.threads.append(thread)
             thread.start()
 
@@ -219,11 +220,20 @@ def getToDownload(givenList):
     return returnList
 
 
-def downloadFromProgress(download_progress, interrupt, action_queue):
+def downloadFromProgress(download_progress, interrupt, action_queue, download_queue):
     assert isinstance(download_progress, DownloadProgress)
     assert isinstance(interrupt, Interrupt)
-    client = Client(download_progress.serverIP, download_progress.serverPort)
-    client.requestFile(download_progress.filename, progress=download_progress, interrupt=interrupt, action_queue=action_queue)
+    while True:
+        try:
+            client = Client(download_progress.serverIP, download_progress.serverPort)
+            client.requestFile(download_progress.filename, progress=download_progress, interrupt=interrupt, action_queue=action_queue)
+        except ConnectionError:
+            if download_queue.kill.qsize() != 0:
+                sys.exit(1)
+            download_progress.download_speed = 0
+            download_queue.update()
+            print("Failed to connect, will try again in 10 seconds...")
+            eel.sleep(10)
 
 # def downloadQDownloader():
 #     to_download = []

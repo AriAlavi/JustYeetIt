@@ -397,7 +397,10 @@ def server(host_ip, port, kill):
     server = Server()
     event_loop = asyncio.get_event_loop()
     run_app = asyncio.ensure_future(server.run(host_ip, port, kill))
-    event_loop.run_forever()
+    try:
+        event_loop.run_forever()
+    except:
+        sys.exit(1)
 
 
 def client(host_ip, port):
