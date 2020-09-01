@@ -133,8 +133,10 @@ class DownloadQueue():
         for x in self.data:
             x.download_Speed = 0
         self.save(True)
+        self.kill.put(True)
         self.running = False
         self._closed = True
+        
 
     @staticmethod
     def HashListGenerator(sharedList):
@@ -157,14 +159,20 @@ class DownloadQueue():
 
         return hashList
 
+    def kill_reference(self, interrupter):
+        self.kill = interrupter
+
     FUNCTION_MAP = {
         "save" : save,
         "add" : add,
         "remove" : remove,
         "stop" : stop,
         "pause" : pause,
+        "kill_reference" : kill_reference
     }
     STATE_CHANGING_FUNCTIONS = ["add", "remove", "pause"]
+
+
 
     def run(self):
         self.createDownloads()

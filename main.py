@@ -4,13 +4,15 @@ from download_queue import *
 import eel
 import multiprocessing
 
+SERVER_KILL = None
 
 @eel.expose
 def hostServer(server_ip):
     global hosting
+    global SERVER_KILL
     try:
         # server(server_ip, 5003)
-        p = multiprocessing.Process(target=server, args=(server_ip, 5003))
+        p = multiprocessing.Process(target=server, args=(server_ip, 5003, SERVER_KILL))
         hosting = True
         p.start()
         return True
@@ -78,14 +80,19 @@ def main():
     global generate_hash_lists
     global action_queue
     global hosting
+    global SERVER_KILL
     print("Starting setup...")
     hosting = False
     setup()
     print("Setup complete")
     print("Starting queues...")
-    # download_q = Process(target=downloadQDownloader, args=())
     action_queue = multiprocessing.Manager().Queue()
     shared_list = multiprocessing.Manager().list()
+    SERVER_KILL = multiprocessing.Manager().Queue()
+    action_queue.put({
+        "function" : "kill_reference",
+        "args" : (SERVER_KILL,)
+    })
     print("Queues complete")
     DOWNLOAD_QUEUE = DownloadQueue(action_queue, shared_list)
     generate_hash_lists = DownloadQueue.HashListGenerator(shared_list)

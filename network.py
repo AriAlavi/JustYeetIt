@@ -6,6 +6,9 @@ import asyncio
 import pickle
 import re
 import os
+import eel
+from signal import SIGINT, SIGTERM
+import functools
 from collections import OrderedDict
 from statistics import mean
 
@@ -156,13 +159,25 @@ class Server:
             await func(self, r, w)
         except ConnectionResetError:
             pass
+    async def killServer(self):
+        
+        while True:
+            eel.sleep(60)
         
 
-    async def run(self, host_ip, port):
+    async def run(self, host_ip, port, kill):
+        from download_queue import Interrupt
         self.HOST_IP = host_ip
         self.PORT = port
+        self.interrupt = kill
         print("Ready to receive connections on {}:{}".format(self.HOST_IP, self.PORT))
-        await asyncio.start_server(self._handle_client, self.HOST_IP, self.PORT)
+        server_task = asyncio.ensure_future(asyncio.start_server(self._handle_client, self.HOST_IP, self.PORT))
+        while self.interrupt.empty():
+            await asyncio.sleep(0)
+        server_task.cancel()
+        print("Shutting down server...")
+        sys.exit(1)
+
 
 def checkCorrectFile(base_file, checking_file) -> bool:
     assert isinstance(base_file, str)
@@ -378,12 +393,11 @@ def menu(prompt, validator, useClipboard=False):
     return result
 
 
-def server(host_ip, port):
-    loop = asyncio.get_event_loop()
+def server(host_ip, port, kill):
     server = Server()
-    loop.run_until_complete(server.run(host_ip, port))
-    loop.run_forever()
-
+    event_loop = asyncio.get_event_loop()
+    run_app = asyncio.ensure_future(server.run(host_ip, port, kill))
+    event_loop.run_forever()
 
 
 def client(host_ip, port):
