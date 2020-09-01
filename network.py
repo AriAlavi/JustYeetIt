@@ -207,6 +207,7 @@ class Server:
         while self.interrupt.empty():
             await asyncio.sleep(0)
         server_task.cancel()
+        user_count_task.cancel()
         print("Shutting down server...")
         sys.exit(1)
 
@@ -391,38 +392,6 @@ class Client:
         s.send(b"\x02")
         self.sendStr(s, file_name)
         return self.recvInt(s)
-        
-
-def yesNoValidator(obj):
-    if obj in ["y", "n"]:
-        return True
-    return False
-
-def validateIP(givenIp):
-    if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",givenIp):
-        return True
-    return False
-    
-
-
-def menu(prompt, validator, useClipboard=False):
-    import pyperclip
-    if useClipboard:
-        input(prompt)
-        result = pyperclip.paste()
-    else:
-        result = input(prompt + "\n")
-    while not validator(result):
-        if useClipboard:
-            print("{} is invalid".format(pyperclip.paste()))
-        else:
-            print("Invalid input!")
-        if useClipboard:
-            input(prompt)
-            result = pyperclip.paste()
-        else:
-            result = input(prompt + "\n")
-    return result
 
 
 def server(host_ip, port, kill, USER_COUNT):

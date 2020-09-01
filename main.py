@@ -7,17 +7,19 @@ import ctypes
 
 SERVER_KILL = None
 USERS_CONNECTED = None
+SERVER_PROCESS = None
 
 @eel.expose
 def hostServer(server_ip):
     global hosting
     global SERVER_KILL
     global USERS_CONNECTED
+    global SERVER_PROCESS
     try:
         # server(server_ip, 5003)
-        p = multiprocessing.Process(target=server, args=(server_ip, 5003, SERVER_KILL, USERS_CONNECTED))
+        SERVER_PROCESS = multiprocessing.Process(target=server, args=(server_ip, 5003, SERVER_KILL, USERS_CONNECTED))
         hosting = True
-        p.start()
+        SERVER_PROCESS.start()
         return True
     except Exception as e:
         print(e)
@@ -91,6 +93,7 @@ def main():
     global hosting
     global SERVER_KILL
     global USERS_CONNECTED
+    global SERVER_PROCESS
     print("Starting setup...")
     hosting = False
     setup()
@@ -125,6 +128,10 @@ def main():
                 "function" : "stop",
                 "args" : ()
             })
+        if SERVER_PROCESS:
+            SERVER_PROCESS.kill()
+        p.kill()
         print("Execution complete")
+        
 if __name__ == "__main__":
     main()
