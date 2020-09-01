@@ -84,11 +84,16 @@ class ConnectionQ:
     def add(self, ip):
         self.conns[ip] = time.time()
         self.shared_reference[0] = len(self.conns.keys())
+    def remove(self, ip):
+        try:
+            del self.conns[ip]
+        except:
+            pass
     def purge(self):
         now = time.time()
         to_remove = []
         for ip, last in self.conns.items():
-            if now - last > 60:
+            if now - last > 60 * 10:
                 to_remove.append(ip)
         for ip in to_remove:
             del self.conns[ip]
@@ -177,9 +182,12 @@ class Server:
         assert isinstance(w, asyncio.StreamWriter)
         try:
             func = self.BYTE_MAP[await r.read(1)]
-            self.connection_q.add(r._transport.get_extra_info('peername'))
+            ip = r._transport.get_extra_info('peername')
+            self.connection_q.add(ip)
             await func(self, r, w)
+            self.connection_q.remove(ip)
         except ConnectionResetError:
+            self.connection_q.remove(ip)
             pass
     async def killServer(self):
         
