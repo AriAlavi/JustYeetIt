@@ -140,6 +140,9 @@ html{
             <div id="hostingServer" style="color: green; font-size: 24px;" hidden>
                 Hosting Server...
             </div>
+            <div class="connected" style="margin-top: 10%;" hidden>
+                Connected users: <span id="connected"></span>
+            </div>
             
         </div>
     </div>
@@ -164,6 +167,7 @@ html{
     loadHosts();
     checkHosting();
     refreshQueueForever();
+    updateConnected();
     let selected_ip = null;
     document.addEventListener('click',function(e){
     if(! e.target || e.target.classList.contains("disabled")){

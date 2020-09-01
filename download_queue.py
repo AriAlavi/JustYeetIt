@@ -47,6 +47,36 @@ class DownloadProgress:
     #     client.requestFile(self.filename)
     def getPrecent(self) -> float:
         return self.downloaded / self.filesize
+    def getTimeRemains(self) -> str:
+        if self.complete:
+            return 0
+        if self.download_speed == 0:
+            return -1
+        time = (self.filesize - self.downloaded) / self.download_speed
+        return time
+        # SECOND = 1
+        # MINUTE = SECOND * 60
+        # HOUR = MINUTE * 60
+        # DAY = HOUR * 24
+        # WEEK = DAY * 7
+        # NAME_LIST = ("Week", "Day", "Hour", "Minute", "Second")
+        # NAME_DENOMINATIONS = (WEEK, DAY, HOUR, MINUTE, SECOND)
+        # times = []
+        # for i in range(len(NAME_DENOMINATIONS)):
+        #     name = NAME_LIST[i]
+        #     denomination = NAME_DENOMINATIONS[i]
+        #     if time > denomination:
+        #         counts = time // denomination
+        #         time = time % denomination
+        #         if counts > 1:
+        #             name += "s"
+                
+        #         name = "{} {}".format(counts, name)
+        #         times.append(name)
+        # while len(times) > 2:
+        #     times.pop()
+    
+        # return ", ".join(times)
     def toJson(self) -> str:
         data = {
             "filename" : self.filename,
@@ -58,6 +88,7 @@ class DownloadProgress:
             "paused" : self.paused,
             "percent" : self.getPrecent(),
             "complete" : self.complete,
+            "remains" : self.getTimeRemains()
         }
         if self.complete:
             data['percent'] = 1

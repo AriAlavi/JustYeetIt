@@ -77,6 +77,27 @@ class BufferSize:
 
         
 
+class ConnectionQ:
+    def __init__(self, shared_reference):
+        self.conns = {}
+        self.shared_reference = shared_reference
+    def add(self, ip):
+        self.conns[ip] = time.time()
+        self.shared_reference[0] = len(self.conns.keys())
+    def purge(self):
+        now = time.time()
+        to_remove = []
+        for ip, last in self.conns.items():
+            if now - last > 60:
+                to_remove.append(ip)
+        for ip in to_remove:
+            del self.conns[ip]
+        self.shared_reference[0] = len(self.conns.keys())
+    async def run(self):
+        while True:
+            await asyncio.sleep(1)
+            self.purge()
+
 class Server:
     async def sendInt(self, w, givenInt: int):
         assert givenInt > 0
@@ -156,6 +177,7 @@ class Server:
         assert isinstance(w, asyncio.StreamWriter)
         try:
             func = self.BYTE_MAP[await r.read(1)]
+            self.connection_q.add(r._transport.get_extra_info('peername'))
             await func(self, r, w)
         except ConnectionResetError:
             pass
@@ -165,13 +187,15 @@ class Server:
             eel.sleep(60)
         
 
-    async def run(self, host_ip, port, kill):
+    async def run(self, host_ip, port, kill, USER_COUNT):
         from download_queue import Interrupt
         self.HOST_IP = host_ip
         self.PORT = port
         self.interrupt = kill
+        self.connection_q = ConnectionQ(USER_COUNT)
         print("Ready to receive connections on {}:{}".format(self.HOST_IP, self.PORT))
         server_task = asyncio.ensure_future(asyncio.start_server(self._handle_client, self.HOST_IP, self.PORT))
+        user_count_task = asyncio.ensure_future(self.connection_q.run())
         while self.interrupt.empty():
             await asyncio.sleep(0)
         server_task.cancel()
@@ -393,10 +417,10 @@ def menu(prompt, validator, useClipboard=False):
     return result
 
 
-def server(host_ip, port, kill):
+def server(host_ip, port, kill, USER_COUNT):
     server = Server()
     event_loop = asyncio.get_event_loop()
-    run_app = asyncio.ensure_future(server.run(host_ip, port, kill))
+    run_app = asyncio.ensure_future(server.run(host_ip, port, kill, USER_COUNT))
     try:
         event_loop.run_forever()
     except:

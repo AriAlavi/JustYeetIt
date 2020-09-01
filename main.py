@@ -3,22 +3,30 @@ from hosts import *
 from download_queue import *
 import eel
 import multiprocessing
+import ctypes
 
 SERVER_KILL = None
+USERS_CONNECTED = None
 
 @eel.expose
 def hostServer(server_ip):
     global hosting
     global SERVER_KILL
+    global USERS_CONNECTED
     try:
         # server(server_ip, 5003)
-        p = multiprocessing.Process(target=server, args=(server_ip, 5003, SERVER_KILL))
+        p = multiprocessing.Process(target=server, args=(server_ip, 5003, SERVER_KILL, USERS_CONNECTED))
         hosting = True
         p.start()
         return True
     except Exception as e:
         print(e)
         return False
+
+@eel.expose
+def users_connected():
+    global USERS_CONNECTED
+    return USERS_CONNECTED[0]
 
 @eel.expose
 def checkHosting():
@@ -61,6 +69,7 @@ def removeFromQueue(uniqueHash):
     
 @eel.expose
 def pauseQueueAlternate(uniqueHash):
+    print("Click pause toggle")
     call = {
         "function" : "pause",
         "args" : (uniqueHash,),
@@ -81,6 +90,7 @@ def main():
     global action_queue
     global hosting
     global SERVER_KILL
+    global USERS_CONNECTED
     print("Starting setup...")
     hosting = False
     setup()
@@ -89,6 +99,8 @@ def main():
     action_queue = multiprocessing.Manager().Queue()
     shared_list = multiprocessing.Manager().list()
     SERVER_KILL = multiprocessing.Manager().Queue()
+    USERS_CONNECTED = multiprocessing.Manager().list()
+    USERS_CONNECTED.append(0)
     action_queue.put({
         "function" : "kill_reference",
         "args" : (SERVER_KILL,)

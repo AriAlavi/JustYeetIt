@@ -37,6 +37,50 @@ function intToByteLengthString(byte_length){
     }
     
 }
+
+async function getUserCount(){
+    func = eel.users_connected();
+    return await func();
+}
+
+function intToTimeString(givenInt){
+    const SECOND = 1;
+    const MINUTE = 60 * SECOND;
+    const HOUR = 60 * MINUTE;
+    const DAY = 24 * HOUR;
+    const WEEK = 7 * DAY;
+
+    if(givenInt < 0){
+        return "Time to complete: Infinite"
+    }
+    if(givenInt == 0){
+        return ""
+    }
+
+    const NAMES = ["Week", "Day", "Hour", "Minute", "Second"];
+    const DENOMINATIONS = [WEEK, DAY, HOUR, MINUTE, SECOND];
+    var times = []
+    for(var i = 0; i < NAMES.length; i++){
+        var name = NAMES[i];
+        var denomination = DENOMINATIONS[i];
+        if(givenInt > denomination){
+            count = Math.floor(givenInt / denomination);
+            givenInt = givenInt % denomination;
+            if(count > 1){
+                name = name + "s";
+            }
+            times.push(String(count) + " " + name)
+        }
+        if(times.length == 2){
+            return "Time to complete: " + times[0] + ", " + times[1];
+        }
+    }
+    if(times.length == 1){
+        return "Time to complete: " + times[0];
+    }
+    return "Time to complete: " + times[0] + ", " + times[1];
+}
+
 async function addHost(){
     IP = document.getElementById("addIP").value;
     await eel.addHost(IP);
@@ -51,6 +95,7 @@ function hostingEffects(){
     document.getElementById("hostIP").disabled = true;
     document.getElementById("hostIP").placeholder = "";
     document.getElementById("hostingServer").hidden = false;
+    document.getElementsByClassName("connected")[0].hidden = false;
 }
 
 async function checkHosting(){
@@ -180,7 +225,13 @@ async function refreshQueue(){
         q_elem_data.appendChild(file_progress);
         q_elem_data.appendChild(download_speed);
         q_elem_data.classList.add("q_data")
+
+
+        q_elem_time = document.createElement('div');
+        q_elem_time.innerText = intToTimeString(q_json['remains'])
+
         q_elem.appendChild(q_elem_data);
+        q_elem.appendChild(q_elem_time);
     }
 }
 function sleep (time) {
@@ -199,4 +250,13 @@ async function pauseQueueAlternate(uniqueHash){
 
 async function removeQueue(uniqueHash){
     await eel.removeFromQueue(uniqueHash)();
+}
+
+async function updateConnected(){
+    while(true){
+        await sleep(1000);
+        var count = await getUserCount();
+        document.getElementById("connected").innerText = count;
+    }
+    
 }
