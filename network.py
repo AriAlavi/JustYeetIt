@@ -185,9 +185,7 @@ class Server:
             ip = r._transport.get_extra_info('peername')
             self.connection_q.add(ip)
             await func(self, r, w)
-            self.connection_q.remove(ip)
         except ConnectionResetError:
-            self.connection_q.remove(ip)
             pass
     async def killServer(self):
         
