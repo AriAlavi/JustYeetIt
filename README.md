@@ -15,25 +15,25 @@ How do I use this? (Transfer files to a friend)
 
 # But why not use 'x' instead??
 **FTP Servers**
-FTP servers require port forwarding and technical knowledge for the host. Additionally, pausing the download is not required.
+FTP servers require port forwarding and technical knowledge for the host. Additionally, pausing the download is not possible.
 
 **Filezilla**
 Filezilla makes setting up an FTP server easier, but still requires port forwarding on the part of the host.
 
 **Windows Network Sharing**
-Windows Network Sharing does not support pausing downloads. Further, it requires you to create a windows account on your PC for the person who wishes to download the file.
+Windows Network Sharing does not support pausing downloads. Additionally, it requires you to create a windows account on your PC for the person who wishes to download the file.
 
 **Torrent Software**
-While torrents were created exactly for this purpose, they still require technical knowledge and have a stigma attached to them. If you and your friends know how to operate private torrents. I suggest their use over this program.
+While torrents were created exactly for this purpose, they still require technical knowledge and have a stigma attached to them. If you and your friends know how to operate private torrents, I suggest their use over this program.
 
 **Google Drive**
-Google Drive places a 15GB cap on download speed and requires a two part "upload" on the part of the host and "download" on the part of the friend. A direct transfer is significantly faster in the use case of file transfer to a friend. 
+Google Drive places a 15GB cap on downloads/day and requires two transfers instead of one. First uploading to Drive, then downloading from Drive. A direct transfer is significantly faster in the use case of file transfer to a friend. 
 
 **Why should I care about pausing downloads?**
 Well, isn't it nice knowing you can restart your PC and even turn it off whenever you want? My PC is near my bed and I cannot fall asleep easily when it's on. If there's a huge file transfer to be had that cannot be finished in one day, pausing is required.
 
 # Why Hamachi?
-This program is made to not require port forwarding or UPnP. It only works when computers are on the same network. If you have alternative ways to put your friends on the same network as you, go ahead and use your method. I found Hamchi works best for me.
+This program is made to not require port forwarding and I don't know UPnP. It only works when computers are on the same network. If you have alternative ways to put your friends on the same network as you, go ahead and use your method. I found Hamchi works best for me.
 
 
 # Why Windows?
