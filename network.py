@@ -1,4 +1,3 @@
-
 import socket
 import time
 import sys
@@ -12,15 +11,16 @@ import functools
 from collections import OrderedDict
 from statistics import mean
 
-BYTES_TO_SEND = 1024 * 1024 * 128 # 128 megabytes
+BYTES_TO_SEND = 1024 * 1024 * 128  # 128 megabytes
 FILES_LOCATION = "files"
 INCOMPLETE_FILES_LOCATION = "incomplete"
 
 
-class BufferInstance():
+class BufferInstance:
     def __init__(self, size):
         self.size = size
         self.attempts = []
+
     def mean(self) -> float:
         if len(self.attempts) == 0:
             return 0
@@ -28,10 +28,15 @@ class BufferInstance():
 
     def add(self, time: float):
         self.attempts.append(time)
+
     def __str__(self):
-        return "{} size with {} time, in {}".format(self.size, self.mean(), len(self.attempts))
+        return "{} size with {} time, in {}".format(
+            self.size, self.mean(), len(self.attempts)
+        )
+
     def __repr__(self):
         return str(self)
+
 
 class BufferSize:
     def __init__(self, initial=1024):
@@ -42,6 +47,7 @@ class BufferSize:
         self.tries = 0
         self.calibrations_made = 0
         self.MAX_CALIBRATION_ACCURACY = 128
+
     def addHistory(self, time):
         if self.calibrations_made >= self.MAX_CALIBRATION_ACCURACY:
             return
@@ -50,12 +56,13 @@ class BufferSize:
             self.history.append(self.history_dict[self.size])
         self.history_dict[self.size].add(time)
         self.tries += 1
+
     def getSize(self):
         if self.tries < 3 or self.calibrations_made >= self.MAX_CALIBRATION_ACCURACY:
             return self.size
         else:
             self.tries = 0
-            self.history.sort(key=lambda x: x.mean())
+            self.history.sort(key=lambda x: x.mean() / x.size)
             if len(self.history) == 1:
                 self.size = self.size * 2
             else:
@@ -70,25 +77,29 @@ class BufferSize:
                     self.size = self.history[0].size
         self.calibrations_made += 1
         return self.size
+
     def __str__(self):
         return str(self.size)
+
     def __repr__(self):
         return str(self)
 
-        
 
 class ConnectionQ:
     def __init__(self, shared_reference):
         self.conns = {}
         self.shared_reference = shared_reference
+
     def add(self, ip):
         self.conns[ip] = time.time()
         self.shared_reference[0] = len(self.conns.keys())
+
     def remove(self, ip):
         try:
             del self.conns[ip]
         except:
             pass
+
     def purge(self):
         now = time.time()
         to_remove = []
@@ -98,20 +109,26 @@ class ConnectionQ:
         for ip in to_remove:
             del self.conns[ip]
         self.shared_reference[0] = len(self.conns.keys())
+
     async def run(self):
         while True:
             await asyncio.sleep(1)
             self.purge()
 
+
 class Server:
     async def sendInt(self, w, givenInt: int):
         assert givenInt > 0
-        data_length_in_bytes = givenInt.to_bytes(7, byteorder="big") # Please don't use files larger than 1 Pentabyte, thank you
+        data_length_in_bytes = givenInt.to_bytes(
+            7, byteorder="big"
+        )  # Please don't use files larger than 1 Pentabyte, thank you
         w.write(data_length_in_bytes)
         await w.drain()
+
     async def recvInt(self, r) -> int:
         data_length_in_bytes = await r.read(7)
         return int.from_bytes(data_length_in_bytes, byteorder="big")
+
     async def recvStr(self, r) -> str:
         data_length = await self.getDataLength(r)
         BYTES_PER_TICK = 1024
@@ -123,11 +140,14 @@ class Server:
             chunks.append(current)
             bytes_got += len(current)
         return (b"".join(chunks)).decode()
+
     async def sendDataLength(self, w, data):
         await self.sendInt(w, len(data))
+
     async def getDataLength(self, r):
         assert isinstance(r, asyncio.StreamReader)
         return await self.recvInt(r)
+
     async def sendBool(self, w, givenBool):
         assert isinstance(givenBool, bool)
         if givenBool:
@@ -146,6 +166,7 @@ class Server:
         await self.sendDataLength(w, pickled_files)
         w.write(pickled_files)
         await w.drain()
+
     async def sendFile(self, r, w):
         assert isinstance(w, asyncio.StreamWriter)
         file_name = await self.recvStr(r)
@@ -173,34 +194,38 @@ class Server:
         await self.sendInt(w, file_length)
 
     BYTE_MAP = {
-        b"\x00" : getFileList,
-        b"\x01" : sendFile,
-        b"\x02" : sendFileSize,
-        }
+        b"\x00": getFileList,
+        b"\x01": sendFile,
+        b"\x02": sendFileSize,
+    }
+
     async def _handle_client(self, r, w):
         assert isinstance(r, asyncio.StreamReader)
         assert isinstance(w, asyncio.StreamWriter)
         try:
             func = self.BYTE_MAP[await r.read(1)]
-            ip = r._transport.get_extra_info('peername')
+            ip = r._transport.get_extra_info("peername")
             self.connection_q.add(ip)
             await func(self, r, w)
         except ConnectionResetError:
             pass
+
     async def killServer(self):
-        
+
         while True:
             eel.sleep(60)
-        
 
     async def run(self, host_ip, port, kill, USER_COUNT):
         from download_queue import Interrupt
+
         self.HOST_IP = host_ip
         self.PORT = port
         self.interrupt = kill
         self.connection_q = ConnectionQ(USER_COUNT)
         print("Ready to receive connections on {}:{}".format(self.HOST_IP, self.PORT))
-        server_task = asyncio.ensure_future(asyncio.start_server(self._handle_client, self.HOST_IP, self.PORT))
+        server_task = asyncio.ensure_future(
+            asyncio.start_server(self._handle_client, self.HOST_IP, self.PORT)
+        )
         user_count_task = asyncio.ensure_future(self.connection_q.run())
         while self.interrupt.empty():
             await asyncio.sleep(0)
@@ -213,43 +238,52 @@ class Server:
 def checkCorrectFile(base_file, checking_file) -> bool:
     assert isinstance(base_file, str)
     assert isinstance(checking_file, str)
-    if checking_file[:len(base_file)] != base_file: # bob.txt vs knob.txt
+    if checking_file[: len(base_file)] != base_file:  # bob.txt vs knob.txt
         return False
     if "." in base_file:
-        if checking_file.count(".") != base_file.count(".") + 1: # bob.png vs bob.1 , .bob.png vs .bob.1
+        if (
+            checking_file.count(".") != base_file.count(".") + 1
+        ):  # bob.png vs bob.1 , .bob.png vs .bob.1
             return False
         checking_extension = checking_file.split(".")[-2]
         base_extension = base_file.split(".")[-1]
-        if checking_extension != base_extension: # bob.png vs bob.jpg
+        if checking_extension != base_extension:  # bob.png vs bob.jpg
             return False
     else:
-        if checking_file.count(".") != 1: # bob vs bob.png.1
+        if checking_file.count(".") != 1:  # bob vs bob.png.1
             return False
 
-    if "." != checking_file[len(base_file):len(base_file)+1]: # bob.png vs bobb.png
+    if "." != checking_file[len(base_file) : len(base_file) + 1]:  # bob.png vs bobb.png
         return False
 
     return True
-        
+
+
 class Client:
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
         self.buffer = BufferSize(1024)
+
     def getSocket(self) -> socket.socket:
         s = socket.socket()
         s.connect((self.ip, self.port))
         return s
+
     def sendInt(self, s, givenInt: int):
-        data_length_in_bytes = givenInt.to_bytes(7, byteorder="big") # Please don't use files larger than 1 Pentabyte, thank you
+        data_length_in_bytes = givenInt.to_bytes(
+            7, byteorder="big"
+        )  # Please don't use files larger than 1 Pentabyte, thank you
         s.send(data_length_in_bytes)
+
     def recvInt(self, s):
         int_in_bytes = s.recv(7)
         return int.from_bytes(int_in_bytes, byteorder="big")
-   
+
     def sendDataLength(self, s, data):
         assert isinstance(s, socket.socket)
         self.sendInt(s, len(data))
+
     def recvBool(self, s) -> bool:
         assert isinstance(s, socket.socket)
         given_bool = s.recv(1)
@@ -259,6 +293,7 @@ class Client:
             return True
         else:
             raise Exception("{} is not a valid boolean".format(given_bool))
+
     def sendStr(self, s, givenString: str):
         as_bytes = givenString.encode()
         self.sendDataLength(s, as_bytes)
@@ -283,15 +318,18 @@ class Client:
             current = s.recv(bytes_to_get)
             chunks.append(current)
             bytes_got += len(current)
-        byte_data =  b"".join(chunks)
+        byte_data = b"".join(chunks)
         s.close()
         return pickle.loads(byte_data)
+
     def getTempFiles(self, file_name):
         assert isinstance(file_name, str)
         temp_files = []
         for current_file_name in os.listdir(INCOMPLETE_FILES_LOCATION):
             if checkCorrectFile(file_name, current_file_name):
-                temp_files.append(os.path.join(INCOMPLETE_FILES_LOCATION, current_file_name))
+                temp_files.append(
+                    os.path.join(INCOMPLETE_FILES_LOCATION, current_file_name)
+                )
         if len(temp_files) == 0:
             return []
         temp_files.sort(key=lambda x: int(x.split(".")[-1]))
@@ -299,15 +337,18 @@ class Client:
         if os.stat(last).st_size == BYTES_TO_SEND:
             temp_files.append(last)
         try:
-            assert all(os.stat(file_path).st_size == BYTES_TO_SEND for file_path in temp_files)
+            assert all(
+                os.stat(file_path).st_size == BYTES_TO_SEND for file_path in temp_files
+            )
         except Exception:
             print("Files for {} corrupted!".format(file_name))
             self.hangForever()
-            
+
         return temp_files
 
     def requestFile(self, file_name, **kwargs):
         from download_queue import DownloadProgress
+
         assert isinstance(file_name, str)
         progress = kwargs.get("progress", None)
         interrupt = kwargs.get("interrupt", None)
@@ -324,7 +365,9 @@ class Client:
             starting_byte = 0
 
         file_length = None
-        while (not file_length or starting_byte < file_length) and (not progress or not progress.paused):
+        while (not file_length or starting_byte < file_length) and (
+            not progress or not progress.paused
+        ):
             s = self.getSocket()
             s.send(b"\x01")
             self.sendStr(s, file_name)
@@ -344,25 +387,26 @@ class Client:
                 time_before = time.time()
                 buffer_size = self.buffer.getSize()
                 data = s.recv(buffer_size)
-                self.buffer.addHistory(time.time() - time_before )
+                self.buffer.addHistory(time.time() - time_before)
                 i += 1
                 if i % 1000 == 0:
                     if progress:
-                        download_speed = total_bytes_download_speed_tracker / (time.time() - last_called_download_speed_tracker + .0001)
+                        download_speed = total_bytes_download_speed_tracker / (
+                            time.time() - last_called_download_speed_tracker + 0.0001
+                        )
                         last_called_download_speed_tracker = time.time()
                         total_bytes_download_speed_tracker = 0
-                        progress.setDownloaded(overall_download_length + bytes_recieved, download_speed)
-                        action_queue.put({
-                            "function" : "save",
-                            "args" : ()
-                        })
+                        progress.setDownloaded(
+                            overall_download_length + bytes_recieved, download_speed
+                        )
+                        action_queue.put({"function": "save", "args": ()})
                 bytes_recieved += len(data)
                 total_bytes_download_speed_tracker += len(data)
                 file.write(data)
                 if interrupt and interrupt.interrupt:
                     raise Exception("Interrupted")
             starting_byte += bytes_recieved
-            
+
             file.close()
             temp_files.append(temp_file_name)
             s.close()
@@ -378,10 +422,7 @@ class Client:
             os.remove(temp_file)
         if progress:
             progress.complete = True
-            action_queue.put({
-                "function" : "pause",
-                "args" : (progress.uniqueHash(),)
-            })
+            action_queue.put({"function": "pause", "args": (progress.uniqueHash(),)})
         return True
 
     def requestFileSize(self, file_name):
@@ -414,8 +455,3 @@ def setup():
         os.mkdir(FILES_LOCATION)
     if not os.path.isdir(INCOMPLETE_FILES_LOCATION):
         os.mkdir(INCOMPLETE_FILES_LOCATION)
-
-
-
-
-
