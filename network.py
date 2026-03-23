@@ -181,9 +181,9 @@ class Server:
         await self.sendInt(w, file_length)
         await self.sendInt(w, bytes_remain)
 
-        file = open(file_path, "rb")
-        file.seek(starting_byte)
-        w.write(file.read(bytes_remain))
+        with open(file_path, "rb") as file:
+            file.seek(starting_byte)
+            w.write(file.read(bytes_remain))
         await w.drain()
 
     async def sendFileSize(self, r, w):

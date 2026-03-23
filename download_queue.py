@@ -12,6 +12,7 @@ import eel
 
 DOWNLOAD_QUEUE_FILENAME = "downloads.pickle"
 
+
 class DownloadProgress:
     def __init__(self, filename, filesize, serverIP, serverPort=5003):
         assert isinstance(filename, str)
@@ -26,16 +27,28 @@ class DownloadProgress:
         self.download_speed = 0
         self.paused = False
         self.complete = False
-        
+
     def uniqueHash(self):
-        data = "f{}{}{}".format(self.filename, self.serverIP, self.serverPort).replace("#", "h").replace(".", "d").replace(" ", "_")
-        return ''.join([s for s in data if s in
-              'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'])
+        data = (
+            "f{}{}{}".format(self.filename, self.serverIP, self.serverPort)
+            .replace("#", "h")
+            .replace(".", "d")
+            .replace(" ", "_")
+        )
+        return "".join(
+            [
+                s
+                for s in data
+                if s in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890"
+            ]
+        )
+
     def delete(self):
         global INCOMPLETE_FILES_LOCATION
         for file_name in os.listdir("."):
             if checkCorrectFile(self.filename, file_name) and os.path.isfile(file_name):
                 os.remove(file_name)
+
     def setDownloaded(self, byte_count, download_speed):
         assert isinstance(byte_count, int)
         assert isinstance(download_speed, float)
@@ -47,6 +60,7 @@ class DownloadProgress:
     #     client.requestFile(self.filename)
     def getPrecent(self) -> float:
         return self.downloaded / self.filesize
+
     def getTimeRemains(self) -> str:
         if self.complete:
             return 0
@@ -70,31 +84,33 @@ class DownloadProgress:
         #         time = time % denomination
         #         if counts > 1:
         #             name += "s"
-                
+
         #         name = "{} {}".format(counts, name)
         #         times.append(name)
         # while len(times) > 2:
         #     times.pop()
-    
+
         # return ", ".join(times)
+
     def toJson(self) -> str:
         data = {
-            "filename" : self.filename,
-            "downloaded" : self.downloaded,
-            "filesize" : self.filesize,
-            "speed" : self.download_speed,
-            "ip" : self.serverIP,
-            "hash" : self.uniqueHash(),
-            "paused" : self.paused,
-            "percent" : self.getPrecent(),
-            "complete" : self.complete,
-            "remains" : self.getTimeRemains()
+            "filename": self.filename,
+            "downloaded": self.downloaded,
+            "filesize": self.filesize,
+            "speed": self.download_speed,
+            "ip": self.serverIP,
+            "hash": self.uniqueHash(),
+            "paused": self.paused,
+            "percent": self.getPrecent(),
+            "complete": self.complete,
+            "remains": self.getTimeRemains(),
         }
         if self.complete:
-            data['percent'] = 1
+            data["percent"] = 1
         return json.dumps(data)
 
-class DownloadQueue():
+
+class DownloadQueue:
     def __init__(self, actionQ, sharedList):
         self.data = []
         self.threads = []
@@ -105,7 +121,7 @@ class DownloadQueue():
         self.running = True
         self.last_save = 0
         self.interrupt = Interrupt()
-        
+
     def __load(self):
         print(os.getcwd())
         if not os.path.isfile(DOWNLOAD_QUEUE_FILENAME):
@@ -128,18 +144,20 @@ class DownloadQueue():
     def createDownloads(self):
         downloads = getToDownload(self.data)
         for download in downloads:
-            thread = Thread(target=downloadFromProgress, args=(download, self.interrupt, self.actionQ, self))
+            thread = Thread(
+                target=downloadFromProgress,
+                args=(download, self.interrupt, self.actionQ, self),
+            )
             self.threads.append(thread)
             thread.start()
 
     def save(self, forced=False):
         if (not forced) and time.time() - self.last_save < 1:
             return
+        self.last_save = time.time()
         self.update()
-        file = open(DOWNLOAD_QUEUE_FILENAME, "wb")
-        data = list(self.data)
-        pickle.dump(data, file)
-        file.close()
+        with open(DOWNLOAD_QUEUE_FILENAME, "wb") as file:
+            pickle.dump(list(self.data), file)
 
     def findFromUniqueHash(self, uniqueHash):
         assert isinstance(uniqueHash, str)
@@ -149,18 +167,23 @@ class DownloadQueue():
         return None
 
     def add(self, downloadProgress):
-        assert isinstance(downloadProgress, DownloadProgress), "was {} instead".format(type(downloadProgress))
+        assert isinstance(downloadProgress, DownloadProgress), "was {} instead".format(
+            type(downloadProgress)
+        )
         if not self.findFromUniqueHash(downloadProgress.uniqueHash()):
             self.data.append(downloadProgress)
+
     def remove(self, uniqueHash):
         assert isinstance(uniqueHash, str)
         obj = self.findFromUniqueHash(uniqueHash)
         self.data.remove(obj)
+
     def pause(self, uniqueHash):
         obj = self.findFromUniqueHash(uniqueHash)
         if obj:
             obj.paused = not obj.paused
         self.save()
+
     def stop(self):
         for x in self.data:
             x.download_Speed = 0
@@ -168,11 +191,11 @@ class DownloadQueue():
         self.kill.put(True)
         self.running = False
         self._closed = True
-        
 
     @staticmethod
     def HashListGenerator(sharedList):
         last_result = []
+
         def hashList():
             nonlocal last_result
             current_result = list(sharedList)
@@ -180,7 +203,7 @@ class DownloadQueue():
                 last_result = current_result
                 return last_result
             last_result = current_result
-            return current_result 
+            return current_result
             # last_result = []
             # current_result = []
             # while [x.uniqueHash() for x in last_result] != [x.uniqueHash() for x in current_result]: # I don't know. This is just in case the list is being modified by the save function when this function is called
@@ -195,16 +218,14 @@ class DownloadQueue():
         self.kill = interrupter
 
     FUNCTION_MAP = {
-        "save" : save,
-        "add" : add,
-        "remove" : remove,
-        "stop" : stop,
-        "pause" : pause,
-        "kill_reference" : kill_reference
+        "save": save,
+        "add": add,
+        "remove": remove,
+        "stop": stop,
+        "pause": pause,
+        "kill_reference": kill_reference,
     }
     STATE_CHANGING_FUNCTIONS = ["add", "remove", "pause"]
-
-
 
     def run(self):
         self.createDownloads()
@@ -213,9 +234,9 @@ class DownloadQueue():
             action = self.actionQ.get()
             print("Action got:", action)
             # print("Q Length:", self.actionQ.qsize())
-            func_name = action['function']
+            func_name = action["function"]
             func = self.FUNCTION_MAP[func_name]
-            args = action['args']
+            args = action["args"]
             assert callable(func)
             prev_to_download = getToDownload(self.data)
             func(*((self,) + args))
@@ -223,17 +244,20 @@ class DownloadQueue():
                 self.save()
             post_to_download = getToDownload(self.data)
 
-            if [x.uniqueHash() for x in prev_to_download] != [x.uniqueHash() for x in post_to_download]:
+            if [x.uniqueHash() for x in prev_to_download] != [
+                x.uniqueHash() for x in post_to_download
+            ]:
                 self.killDownloads()
                 self.createDownloads()
-
 
 
 class Interrupt:
     def __init__(self):
         self.interrupt = False
+
     def execute(self):
         self.interrupt = True
+
 
 def getToDownload(givenList):
     assert isinstance(givenList, list)
@@ -257,7 +281,12 @@ def downloadFromProgress(download_progress, interrupt, action_queue, download_qu
     while True:
         try:
             client = Client(download_progress.serverIP, download_progress.serverPort)
-            client.requestFile(download_progress.filename, progress=download_progress, interrupt=interrupt, action_queue=action_queue)
+            client.requestFile(
+                download_progress.filename,
+                progress=download_progress,
+                interrupt=interrupt,
+                action_queue=action_queue,
+            )
         except ConnectionError:
             if download_queue.kill.qsize() != 0:
                 sys.exit(1)
@@ -265,6 +294,7 @@ def downloadFromProgress(download_progress, interrupt, action_queue, download_qu
             download_queue.update()
             print("Failed to connect, will try again in 10 seconds...")
             eel.sleep(10)
+
 
 # def downloadQDownloader():
 #     to_download = []
@@ -289,5 +319,5 @@ def downloadFromProgress(download_progress, interrupt, action_queue, download_qu
 #             # for download in to_download:
 #             #     tasks.append(downloadFromProgress(download, interrupt))
 #             # asyncio.gather(*tasks, return_exceptions=True)
-            
+
 #         to_download_last = to_download
