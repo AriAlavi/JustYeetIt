@@ -159,19 +159,27 @@ class Server:
 
     async def getFileList(self, r, w):
         files = []
-        for file in os.listdir(FILES_LOCATION):
-            if os.path.isfile(os.path.join(FILES_LOCATION, file)):
-                files.append(file)
+        for root, dirs, filenames in os.walk(FILES_LOCATION):
+            for file in filenames:
+                full_path = os.path.join(root, file)
+                rel_path = os.path.relpath(full_path, FILES_LOCATION).replace("\\", "/")
+                files.append(rel_path)
         pickled_files = pickle.dumps(files)
         await self.sendDataLength(w, pickled_files)
         w.write(pickled_files)
         await w.drain()
 
+    def _resolve_file_path(self, file_name):
+        files_root = os.path.abspath(FILES_LOCATION)
+        file_path = os.path.abspath(os.path.join(FILES_LOCATION, file_name.replace("/", os.sep)))
+        assert file_path.startswith(files_root + os.sep) or file_path == files_root
+        assert os.path.isfile(file_path)
+        return file_path
+
     async def sendFile(self, r, w):
         assert isinstance(w, asyncio.StreamWriter)
         file_name = await self.recvStr(r)
-        assert file_name in os.listdir(FILES_LOCATION)
-        file_path = os.path.join(FILES_LOCATION, file_name)
+        file_path = self._resolve_file_path(file_name)
         starting_byte = await self.recvInt(r)
         file_length = os.stat(file_path).st_size
         bytes_remain = file_length - starting_byte
@@ -188,8 +196,7 @@ class Server:
 
     async def sendFileSize(self, r, w):
         file_name = await self.recvStr(r)
-        assert file_name in os.listdir(FILES_LOCATION)
-        file_path = os.path.join(FILES_LOCATION, file_name)
+        file_path = self._resolve_file_path(file_name)
         file_length = os.stat(file_path).st_size
         await self.sendInt(w, file_length)
 
@@ -356,9 +363,11 @@ class Client:
         if progress:
             assert isinstance(progress, DownloadProgress)
             assert progress and interrupt and action_queue
-        MASTER_FILE_PATH = os.path.join(FILES_LOCATION, file_name)
-        TEMP_FILE_PATH = os.path.join(INCOMPLETE_FILES_LOCATION, file_name)
-        temp_files = self.getTempFiles(file_name)
+        MASTER_FILE_PATH = os.path.join(FILES_LOCATION, file_name.replace("/", os.sep))
+        os.makedirs(os.path.dirname(MASTER_FILE_PATH), exist_ok=True)
+        flat_name = file_name.replace("/", "_")
+        TEMP_FILE_PATH = os.path.join(INCOMPLETE_FILES_LOCATION, flat_name)
+        temp_files = self.getTempFiles(flat_name)
         if temp_files:
             starting_byte = (len(temp_files)) * BYTES_TO_SEND
         else:
