@@ -112,21 +112,98 @@ function clearFiles(){
     }
 }
 
+function toggleFolder(folderPath){
+    const escaped = CSS.escape(folderPath);
+    const children = document.querySelector(`.folder-children[data-folder="${escaped}"]`);
+    const toggle = document.querySelector(`.folder[data-folder="${escaped}"] .folder-toggle`);
+    if(!children || !toggle) return;
+    const isOpen = children.style.display !== "none";
+    children.style.display = isOpen ? "none" : "block";
+    toggle.classList.toggle("open", !isOpen);
+}
+
+function buildTree(paths){
+    const root = { folders: {}, files: [] };
+    for(const path of paths){
+        const parts = path.split("/");
+        let node = root;
+        for(let i = 0; i < parts.length - 1; i++){
+            if(!node.folders[parts[i]])
+                node.folders[parts[i]] = { folders: {}, files: [] };
+            node = node.folders[parts[i]];
+        }
+        node.files.push(path);
+    }
+    return root;
+}
+
+function renderTree(node, parentElem, depth, pathPrefix){
+    for(const [name, subtree] of Object.entries(node.folders)){
+        const fullPrefix = pathPrefix ? pathPrefix + "/" + name : name;
+        const indent = depth * 20;
+
+        const folder_elem = document.createElement("div");
+        folder_elem.classList.add("folder");
+        folder_elem.dataset.folder = fullPrefix;
+        folder_elem.style.marginLeft = indent + "px";
+        folder_elem.style.width = "calc(100% - " + (indent + 12) + "px)";
+
+        const icon_elem = document.createElement("span");
+        icon_elem.classList.add("folder-icon");
+        icon_elem.textContent = "\uD83D\uDCC1";
+
+        const name_elem = document.createElement("span");
+        name_elem.classList.add("folder-name");
+        name_elem.textContent = name;
+        name_elem.title = fullPrefix;
+
+        const toggle_elem = document.createElement("span");
+        toggle_elem.classList.add("folder-toggle");
+        toggle_elem.textContent = "\u25BA";
+
+        folder_elem.appendChild(icon_elem);
+        folder_elem.appendChild(name_elem);
+        folder_elem.appendChild(toggle_elem);
+        parentElem.appendChild(folder_elem);
+
+        const children_elem = document.createElement("div");
+        children_elem.classList.add("folder-children");
+        children_elem.dataset.folder = fullPrefix;
+        children_elem.style.display = "none";
+
+        renderTree(subtree, children_elem, depth + 1, fullPrefix);
+        parentElem.appendChild(children_elem);
+    }
+
+    const indent = depth * 20;
+    for(const filePath of node.files){
+        const fileName = filePath.split("/").pop();
+        const file_elem = document.createElement("div");
+        file_elem.id = filePath;
+        file_elem.classList.add("file");
+        file_elem.innerText = fileName;
+        file_elem.title = filePath;
+        file_elem.style.marginLeft = indent + "px";
+        file_elem.style.width = "calc(100% - " + (indent + 12) + "px)";
+        parentElem.appendChild(file_elem);
+    }
+}
+
 async function getFiles(ip){
     files = await eel.getFiles(ip)();
     files_parent = document.getElementById("files");
-    for(let file of files){
-        file_elem = document.createElement("div")
-        file_elem.id = file;
-        file_elem.classList.add("file");
-        file_elem.innerText = file;
-        file_elem.title = file;
-        files_parent.appendChild(file_elem);
-    }
+
+    const tree = buildTree(files);
+    renderTree(tree, files_parent, 0, "");
+
     for(let elem of document.getElementsByClassName("host")){
-        elem.classList.remove("disabled")
+        elem.classList.remove("disabled");
     }
     return files;
+}
+
+async function addFolderToQueue(folder_name, ip){
+    await eel.addFolderToQueue(folder_name, ip, 5003)();
 }
 
 async function getQueue(){

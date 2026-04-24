@@ -430,8 +430,7 @@ class Client:
         for temp_file in temp_files:
             os.remove(temp_file)
         if progress:
-            progress.complete = True
-            action_queue.put({"function": "pause", "args": (progress.uniqueHash(),)})
+            action_queue.put({"function": "complete", "args": (progress.uniqueHash(),)})
         return True
 
     def requestFileSize(self, file_name):

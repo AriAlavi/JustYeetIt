@@ -7,123 +7,193 @@
 </head>
 
 <style>
-.hostArea{
-    background-color: rgb(51, 46, 46);
-    padding-top: 4px;
-    color: rgb(182, 182, 182);
-}
-.fileArea{
-    background-color: rgb(129, 89, 89);
-    padding-top: 4px;
-    color: rgb(182, 182, 182);
-    display: flex;
-    flex-direction: column;
-}
-#files{
-    overflow-y: auto;
-    flex: 1;
-    min-height: 0;
-}
-.host{
-    border-top: #500a0a 1px solid;
-    border-bottom: #500a0a 1px solid;
-    margin-top: 3px;
-    padding: 3px;
-    font-size: 20px;
-}
-.host:hover{
-    border-top: #790d0d 2px solid;
-    border-bottom: #790d0d 2px solid;
-    cursor: pointer;
-}
-.host.disabled{
-    background-color: grey;
-}
-.host.disabled:hover{
-    cursor:not-allowed;
-}
-.host.selected{
-    background-color: #401706;
-}
-button{
-    margin: 4px;
-    border-radius: 4px;
-    width: 30px;
-    height: 30px;
-}
-body{
-    margin: 0px;
-    background-color: black;
-}
-html{
-    overflow: hidden;
-}
-#host_server{
-    width: 100px;
-    height: 40px;
-}
-.file{
-    width: calc(100% - 12px);
-    text-overflow: ellipsis;
-    overflow: hidden;
-    margin: 2px;
-    background-color: #481919;
-    border-radius: 4px;
-    padding: 4px;
-}
-.file:hover{
-    background-color: #790d0d;
-    cursor: pointer;
-}
-.queueArea{
-    background-color: rgb(64 30 30);
-    padding-top: 4px;
-    color: rgb(182, 182, 182); 
-}
-*{
-    white-space: nowrap;
-}
-.queue_item{
-    background-color: #232323;
-    margin: 4px;
-    padding: 6px;
-    border: 1px solid #580303;
-    border-radius: 4px;
-    user-select: none;
-    width: 90%;
-}
-.queue_item div{
-    display: flex;
-}
-.q_text_elem{
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 3
-}
-.q_server_elem{
-    font-size: 10px;
-    flex: 1
-}
-.progress{
-    flex: 1
-}
-.q_top{
-    text-align: center;
-    vertical-align: middle;
-    margin-bottom: 1px;
-    line-height: 21px;
-}
-.pause{
-    cursor: pointer;
-    flex: .4
-}
-.remove{
-    flex: .4;
-    cursor: pointer;
-}
-.q_data div{
-    flex: 1;
-}
+    .hostArea {
+        background-color: rgb(51, 46, 46);
+        padding-top: 4px;
+        color: rgb(182, 182, 182);
+    }
+
+    .fileArea {
+        background-color: rgb(129, 89, 89);
+        padding-top: 4px;
+        color: rgb(182, 182, 182);
+        display: flex;
+        flex-direction: column;
+    }
+
+    #files {
+        overflow-y: auto;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .host {
+        border-top: #500a0a 1px solid;
+        border-bottom: #500a0a 1px solid;
+        margin-top: 3px;
+        padding: 3px;
+        font-size: 20px;
+    }
+
+    .host:hover {
+        border-top: #790d0d 2px solid;
+        border-bottom: #790d0d 2px solid;
+        cursor: pointer;
+    }
+
+    .host.disabled {
+        background-color: grey;
+    }
+
+    .host.disabled:hover {
+        cursor: not-allowed;
+    }
+
+    .host.selected {
+        background-color: #401706;
+    }
+
+    button {
+        margin: 4px;
+        border-radius: 4px;
+        width: 30px;
+        height: 30px;
+    }
+
+    body {
+        margin: 0px;
+        background-color: black;
+    }
+
+    html {
+        overflow: hidden;
+    }
+
+    #host_server {
+        width: 100px;
+        height: 40px;
+    }
+
+    .file {
+        width: calc(100% - 12px);
+        text-overflow: ellipsis;
+        overflow: hidden;
+        margin: 2px;
+        background-color: #481919;
+        border-radius: 4px;
+        padding: 4px;
+        box-sizing: border-box;
+    }
+
+    .file:hover {
+        background-color: #790d0d;
+        cursor: pointer;
+    }
+
+    .folder {
+        width: calc(100% - 12px);
+        overflow: hidden;
+        margin: 2px;
+        background-color: #2a1a3a;
+        border-radius: 4px;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        user-select: none;
+        box-sizing: border-box;
+    }
+
+    .folder:hover {
+        background-color: #4a2a6a;
+        cursor: pointer;
+    }
+
+    .folder-icon {
+        flex-shrink: 0;
+    }
+
+    .folder-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .folder-toggle {
+        flex-shrink: 0;
+        font-size: 10px;
+        transition: transform 0.15s ease;
+        cursor: pointer;
+        padding: 2px 4px;
+    }
+
+    .folder-toggle.open {
+        transform: rotate(90deg);
+    }
+
+    .folder-children {
+        display: none;
+    }
+
+    .queueArea {
+        background-color: rgb(64 30 30);
+        padding-top: 4px;
+        color: rgb(182, 182, 182);
+    }
+
+    * {
+        white-space: nowrap;
+    }
+
+    .queue_item {
+        background-color: #232323;
+        margin: 4px;
+        padding: 6px;
+        border: 1px solid #580303;
+        border-radius: 4px;
+        user-select: none;
+        width: 90%;
+    }
+
+    .queue_item div {
+        display: flex;
+    }
+
+    .q_text_elem {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 3
+    }
+
+    .q_server_elem {
+        font-size: 10px;
+        flex: 1
+    }
+
+    .progress {
+        flex: 1
+    }
+
+    .q_top {
+        text-align: center;
+        vertical-align: middle;
+        margin-bottom: 1px;
+        line-height: 21px;
+    }
+
+    .pause {
+        cursor: pointer;
+        flex: .4
+    }
+
+    .remove {
+        flex: .4;
+        cursor: pointer;
+    }
+
+    .q_data div {
+        flex: 1;
+    }
 </style>
 
 <div class="main" style="height: 99%; display: flex;">
@@ -133,7 +203,9 @@ html{
                 Hosts
             </div>
             <form style="width: 80%; margin-left: 10%;" onsubmit="addHost(); return false;">
-                <input id="addIP" type="text" minlength="7" maxlength="15" size="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$" style="width: 100%;" placeholder="127.0.0.0">
+                <input id="addIP" type="text" minlength="7" maxlength="15" size="15"
+                    pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$"
+                    style="width: 100%;" placeholder="127.0.0.0">
             </form>
             <div id="hosts">
 
@@ -142,7 +214,9 @@ html{
         <div style="height: 30%; border: 1px solid black;" align="center">
             <div style="font-size: 20px; margin-top: 4px;">Host Server</div>
             <form style="width: 100%;" onsubmit="hostServer(); return false;">
-                <input id="hostIP" type="text" minlength="7" maxlength="15" size="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$" style="width: 100%;" placeholder="127.0.0.0">
+                <input id="hostIP" type="text" minlength="7" maxlength="15" size="15"
+                    pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$"
+                    style="width: 100%;" placeholder="127.0.0.0">
             </form>
             <div id="hostingServer" style="color: green; font-size: 24px;" hidden>
                 Hosting Server...
@@ -150,7 +224,7 @@ html{
             <div class="connected" style="margin-top: 10%;" hidden>
                 Connected users: <span id="connected"></span>
             </div>
-            
+
         </div>
     </div>
     <div class="fileArea" style="height: 100%; flex: 3">
@@ -176,44 +250,53 @@ html{
     refreshQueueForever();
     updateConnected();
     let selected_ip = null;
-    document.addEventListener('click',function(e){
-    if(! e.target || e.target.classList.contains("disabled")){
+    document.addEventListener('click', function (e) {
+        if (!e.target || e.target.classList.contains("disabled")) {
 
-    }
-    if(e.target.classList.contains("host")){
-          selected_ip = e.target.id;
-          for(let i of document.getElementsByClassName("host")){
-              if(i == e.target){
-                i.classList.add("selected");
-              }else{
-                i.classList.remove("selected");
-              }
-              i.classList.add("disabled")
-              
-          }
-          clearFiles();
-          getFiles(e.target.id);
-          return;
-     }
-    else if(e.target.classList.contains("file")){
-        e.target.classList.add("disabled")
-        addToQueue(e.target.id, selected_ip)
-        e.target.classList.remove("disabled")
-    }
-    else if(e.target.classList.contains("pause")){
-        e.target.classList.add("disabled");
-        pauseQueueAlternate(e.target.parentElement.parentElement.id);
-        e.target.classList.remove("disabled");
-    }
-    else if(e.target.classList.contains("remove")){
-        e.target.classList.add("disabled");
-        removeQueue(e.target.parentElement.parentElement.id);
-        e.target.classList.remove("disabled");
-    }
-    refreshQueue();
- });
-    document.addEventListener('contextmenu', function(e) {
-        if(e.target && e.target.classList.contains("host")){
+        }
+        if (e.target.classList.contains("host")) {
+            selected_ip = e.target.id;
+            for (let i of document.getElementsByClassName("host")) {
+                if (i == e.target) {
+                    i.classList.add("selected");
+                } else {
+                    i.classList.remove("selected");
+                }
+                i.classList.add("disabled")
+
+            }
+            clearFiles();
+            getFiles(e.target.id);
+            return;
+        }
+        else if (e.target.classList.contains("file")) {
+            e.target.classList.add("disabled")
+            addToQueue(e.target.id, selected_ip)
+            e.target.classList.remove("disabled")
+        }
+        else if (e.target.classList.contains("folder-toggle")) {
+            const folderElem = e.target.closest(".folder");
+            if (folderElem) toggleFolder(folderElem.dataset.folder);
+            return;
+        }
+        else if (e.target.classList.contains("folder") || e.target.closest(".folder")) {
+            const folderElem = e.target.classList.contains("folder") ? e.target : e.target.closest(".folder");
+            addFolderToQueue(folderElem.dataset.folder, selected_ip);
+        }
+        else if (e.target.classList.contains("pause")) {
+            e.target.classList.add("disabled");
+            pauseQueueAlternate(e.target.parentElement.parentElement.id);
+            e.target.classList.remove("disabled");
+        }
+        else if (e.target.classList.contains("remove")) {
+            e.target.classList.add("disabled");
+            removeQueue(e.target.parentElement.parentElement.id);
+            e.target.classList.remove("disabled");
+        }
+        refreshQueue();
+    });
+    document.addEventListener('contextmenu', function (e) {
+        if (e.target && e.target.classList.contains("host")) {
             e.preventDefault();
             removeHost(e.target.id);
             return false;

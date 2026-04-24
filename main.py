@@ -3,6 +3,7 @@ from hosts import *
 from download_queue import *
 import eel
 import multiprocessing
+import threading
 import ctypes
 import sys
 import os
@@ -62,6 +63,26 @@ def addToQueue(file_name, ip, port=5003):
         "args" : (progress,),
     }
     action_queue.put(call)
+    return True
+
+@eel.expose
+def addFolderToQueue(folder_name, ip, port=5003):
+    def _enqueue():
+        client = Client(ip, port)
+        try:
+            all_files = client.getFileList()
+        except:
+            return
+        folder_prefix = folder_name + "/"
+        folder_files = [f for f in all_files if f.startswith(folder_prefix)]
+        for file_name in folder_files:
+            try:
+                filesize = client.requestFileSize(file_name)
+            except:
+                continue
+            progress = DownloadProgress(file_name, filesize, ip, port)
+            action_queue.put({"function": "add", "args": (progress,)})
+    threading.Thread(target=_enqueue, daemon=True).start()
     return True
 
 @eel.expose

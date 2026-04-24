@@ -139,6 +139,7 @@ class DownloadQueue:
     def killDownloads(self):
         self.interrupt.execute()
         [x.join() for x in self.threads]
+        self.threads = []
         self.interrupt.interrupt = False
 
     def createDownloads(self):
@@ -184,6 +185,11 @@ class DownloadQueue:
             obj.paused = not obj.paused
         self.save()
 
+    def complete(self, uniqueHash):
+        obj = self.findFromUniqueHash(uniqueHash)
+        if obj:
+            obj.complete = True
+
     def stop(self):
         for x in self.data:
             x.download_Speed = 0
@@ -223,9 +229,10 @@ class DownloadQueue:
         "remove": remove,
         "stop": stop,
         "pause": pause,
+        "complete": complete,
         "kill_reference": kill_reference,
     }
-    STATE_CHANGING_FUNCTIONS = ["add", "remove", "pause"]
+    STATE_CHANGING_FUNCTIONS = ["add", "remove", "pause", "complete"]
 
     def run(self):
         self.createDownloads()
@@ -265,7 +272,7 @@ def getToDownload(givenList):
     returnList = []
     serverList = []
     for x in givenList:
-        if x.paused:
+        if x.paused or x.complete:
             continue
         if x.serverIP in serverList:
             continue
@@ -281,12 +288,14 @@ def downloadFromProgress(download_progress, interrupt, action_queue, download_qu
     while True:
         try:
             client = Client(download_progress.serverIP, download_progress.serverPort)
-            client.requestFile(
+            result = client.requestFile(
                 download_progress.filename,
                 progress=download_progress,
                 interrupt=interrupt,
                 action_queue=action_queue,
             )
+            if result:
+                break
         except ConnectionError:
             if download_queue.kill.qsize() != 0:
                 sys.exit(1)
