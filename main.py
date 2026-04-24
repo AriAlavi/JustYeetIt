@@ -13,6 +13,7 @@ USERS_CONNECTED = None
 SERVER_PROCESS = None
 MANAGER = None
 
+
 @eel.expose
 def hostServer(server_ip):
     global hosting
@@ -21,7 +22,9 @@ def hostServer(server_ip):
     global SERVER_PROCESS
     try:
         # server(server_ip, 5003)
-        SERVER_PROCESS = multiprocessing.Process(target=server, args=(server_ip, 5003, SERVER_KILL, USERS_CONNECTED))
+        SERVER_PROCESS = multiprocessing.Process(
+            target=server, args=(server_ip, 5003, SERVER_KILL, USERS_CONNECTED)
+        )
         hosting = True
         SERVER_PROCESS.start()
         return True
@@ -29,29 +32,34 @@ def hostServer(server_ip):
         print(e)
         return False
 
+
 @eel.expose
 def users_connected():
     global USERS_CONNECTED
     return USERS_CONNECTED[0]
+
 
 @eel.expose
 def checkHosting():
     global hosting
     return hosting
 
+
 @eel.expose
 def getFiles(ip):
     client = Client(ip, 5003)
-    eel.sleep(.5)
+    eel.sleep(0.5)
     try:
         return client.getFileList()
     except:
         return []
 
+
 @eel.expose
 def getQueue():
     return [x.toJson() for x in generate_hash_lists()]
-    
+
+
 @eel.expose
 def addToQueue(file_name, ip, port=5003):
     client = Client(ip, port)
@@ -59,11 +67,12 @@ def addToQueue(file_name, ip, port=5003):
     progress = DownloadProgress(file_name, filesize, ip, port)
 
     call = {
-        "function" : "add",
-        "args" : (progress,),
+        "function": "add",
+        "args": (progress,),
     }
     action_queue.put(call)
     return True
+
 
 @eel.expose
 def addFolderToQueue(folder_name, ip, port=5003):
@@ -82,31 +91,34 @@ def addFolderToQueue(folder_name, ip, port=5003):
                 continue
             progress = DownloadProgress(file_name, filesize, ip, port)
             action_queue.put({"function": "add", "args": (progress,)})
+
     threading.Thread(target=_enqueue, daemon=True).start()
     return True
+
 
 @eel.expose
 def removeFromQueue(uniqueHash):
     call = {
-        "function" : "remove",
-        "args" : (uniqueHash,),
+        "function": "remove",
+        "args": (uniqueHash,),
     }
     action_queue.put(call)
-    
+
+
 @eel.expose
 def pauseQueueAlternate(uniqueHash):
     print("Click pause toggle")
     call = {
-        "function" : "pause",
-        "args" : (uniqueHash,),
+        "function": "pause",
+        "args": (uniqueHash,),
     }
     action_queue.put(call)
     return True
 
+
 def runDownloadQueue(action_queue, shared_list):
     dq = DownloadQueue(action_queue, shared_list)
     dq.run()
-
 
 
 def main():
@@ -130,20 +142,21 @@ def main():
     SERVER_KILL = MANAGER.Queue()
     USERS_CONNECTED = MANAGER.list()
     USERS_CONNECTED.append(0)
-    action_queue.put({
-        "function" : "kill_reference",
-        "args" : (SERVER_KILL,)
-    })
+    action_queue.put({"function": "kill_reference", "args": (SERVER_KILL,)})
     print("Queues complete")
     DOWNLOAD_QUEUE = DownloadQueue(action_queue, shared_list)
     generate_hash_lists = DownloadQueue.HashListGenerator(shared_list)
     print("Starting eel...")
-    gui_path = os.path.join(sys._MEIPASS, 'gui') if getattr(sys, 'frozen', False) else 'gui'
+    gui_path = (
+        os.path.join(sys._MEIPASS, "gui") if getattr(sys, "frozen", False) else "gui"
+    )
     eel.init(gui_path)
-    eel.start('main.html', block=False, port=0)
+    eel.start("main.html", block=False, port=0)
     print("Eel complete")
     print("Starting other process...")
-    p = multiprocessing.Process(target=runDownloadQueue, args=(action_queue, shared_list), daemon=True)
+    p = multiprocessing.Process(
+        target=runDownloadQueue, args=(action_queue, shared_list), daemon=True
+    )
     p.start()
     print("Process complete")
     print("Now useable")
@@ -151,10 +164,7 @@ def main():
         while True:
             eel.sleep(120)
     finally:
-        action_queue.put({
-                "function" : "stop",
-                "args" : ()
-            })
+        action_queue.put({"function": "stop", "args": ()})
         if SERVER_PROCESS and SERVER_PROCESS.is_alive():
             SERVER_PROCESS.terminate()
             SERVER_PROCESS.join(timeout=3)
@@ -169,6 +179,7 @@ def main():
                 p.join()
         MANAGER.shutdown()
         print("Execution complete")
-        
+
+
 if __name__ == "__main__":
     main()

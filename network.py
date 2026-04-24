@@ -171,7 +171,9 @@ class Server:
 
     def _resolve_file_path(self, file_name):
         files_root = os.path.abspath(FILES_LOCATION)
-        file_path = os.path.abspath(os.path.join(FILES_LOCATION, file_name.replace("/", os.sep)))
+        file_path = os.path.abspath(
+            os.path.join(FILES_LOCATION, file_name.replace("/", os.sep))
+        )
         assert file_path.startswith(files_root + os.sep) or file_path == files_root
         assert os.path.isfile(file_path)
         return file_path
@@ -211,7 +213,7 @@ class Server:
         assert isinstance(w, asyncio.StreamWriter)
         try:
             func = self.BYTE_MAP[await r.read(1)]
-            ip = r._transport.get_extra_info("peername")
+            ip = r._transport.get_extra_info("peername")[0]
             self.connection_q.add(ip)
             await func(self, r, w)
         except ConnectionResetError:
@@ -306,9 +308,18 @@ class Client:
         self.sendDataLength(s, as_bytes)
         s.send(as_bytes)
 
-    def hangForever(self):
-        while True:
-            time.sleep(120)
+    def clearCorruptedTempFiles(self, flat_name):
+        print("Clearing corrupted temp files for {}".format(flat_name))
+        for file_name in os.listdir(INCOMPLETE_FILES_LOCATION):
+            if checkCorrectFile(flat_name, file_name):
+                try:
+                    os.remove(os.path.join(INCOMPLETE_FILES_LOCATION, file_name))
+                except OSError as e:
+                    print(
+                        "Failed to remove corrupted temp file {}: {}".format(
+                            file_name, e
+                        )
+                    )
 
     def getDataLength(self, s) -> int:
         assert isinstance(s, socket.socket)
@@ -343,13 +354,16 @@ class Client:
         last = temp_files.pop()
         if os.stat(last).st_size == BYTES_TO_SEND:
             temp_files.append(last)
-        try:
-            assert all(
-                os.stat(file_path).st_size == BYTES_TO_SEND for file_path in temp_files
+        if not all(
+            os.stat(file_path).st_size == BYTES_TO_SEND for file_path in temp_files
+        ):
+            print(
+                "Files for {} corrupted! Clearing and restarting download.".format(
+                    file_name
+                )
             )
-        except Exception:
-            print("Files for {} corrupted!".format(file_name))
-            self.hangForever()
+            self.clearCorruptedTempFiles(file_name)
+            return []
 
         return temp_files
 
@@ -408,12 +422,13 @@ class Client:
                         progress.setDownloaded(
                             overall_download_length + bytes_recieved, download_speed
                         )
-                        action_queue.put({"function": "save", "args": ()})
                 bytes_recieved += len(data)
                 total_bytes_download_speed_tracker += len(data)
                 file.write(data)
                 if interrupt and interrupt.interrupt:
-                    raise Exception("Interrupted")
+                    from download_queue import INTERRUPTED_SENTINEL
+
+                    raise Exception(INTERRUPTED_SENTINEL)
             starting_byte += bytes_recieved
 
             file.close()

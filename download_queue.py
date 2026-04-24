@@ -11,6 +11,7 @@ import eel
 
 
 DOWNLOAD_QUEUE_FILENAME = "downloads.pickle"
+INTERRUPTED_SENTINEL = "INTERRUPTED"
 
 
 class DownloadProgress:
@@ -116,11 +117,12 @@ class DownloadQueue:
         self.threads = []
         self.actionQ = actionQ
         self.sharedList = sharedList
-        self.__load()
-        # self._closed = False
+        self._closed = False
         self.running = True
         self.last_save = 0
+        self.kill = None
         self.interrupt = Interrupt()
+        self.__load()
 
     def __load(self):
         print(os.getcwd())
@@ -137,10 +139,23 @@ class DownloadQueue:
         self.sharedList.extend(self.data)
 
     def killDownloads(self):
+        # Signal all active threads to stop using their current interrupt object,
+        # then move threads to a background list. We do NOT join here to avoid
+        # blocking run() while download threads drain the action queue.
         self.interrupt.execute()
-        [x.join() for x in self.threads]
+        old_threads = self.threads
+        old_interrupt = self.interrupt
         self.threads = []
-        self.interrupt.interrupt = False
+        self.interrupt = Interrupt()
+
+        def _reap(threads, interrupt):
+            for t in threads:
+                t.join(timeout=30)
+                if t.is_alive():
+                    print("Warning: download thread did not stop within 30s")
+            interrupt.interrupt = False
+
+        Thread(target=_reap, args=(old_threads, old_interrupt), daemon=True).start()
 
     def createDownloads(self):
         downloads = getToDownload(self.data)
@@ -148,6 +163,7 @@ class DownloadQueue:
             thread = Thread(
                 target=downloadFromProgress,
                 args=(download, self.interrupt, self.actionQ, self),
+                daemon=True,
             )
             self.threads.append(thread)
             thread.start()
@@ -177,7 +193,8 @@ class DownloadQueue:
     def remove(self, uniqueHash):
         assert isinstance(uniqueHash, str)
         obj = self.findFromUniqueHash(uniqueHash)
-        self.data.remove(obj)
+        if obj:
+            self.data.remove(obj)
 
     def pause(self, uniqueHash):
         obj = self.findFromUniqueHash(uniqueHash)
@@ -192,9 +209,10 @@ class DownloadQueue:
 
     def stop(self):
         for x in self.data:
-            x.download_Speed = 0
+            x.download_speed = 0
         self.save(True)
-        self.kill.put(True)
+        if self.kill is not None:
+            self.kill.put(True)
         self.running = False
         self._closed = True
 
@@ -210,13 +228,6 @@ class DownloadQueue:
                 return last_result
             last_result = current_result
             return current_result
-            # last_result = []
-            # current_result = []
-            # while [x.uniqueHash() for x in last_result] != [x.uniqueHash() for x in current_result]: # I don't know. This is just in case the list is being modified by the save function when this function is called
-            #     last_result = current_result
-            #     current_result = list(sharedList)
-            #     time.sleep(.01)
-            # return list(sharedList)
 
         return hashList
 
@@ -237,10 +248,13 @@ class DownloadQueue:
     def run(self):
         self.createDownloads()
         while self.running:
-            # print("Ready to get")
-            action = self.actionQ.get()
+            try:
+                action = self.actionQ.get(timeout=2)
+            except Exception:
+                # Timeout: use the idle cycle to persist state if needed
+                self.save()
+                continue
             print("Action got:", action)
-            # print("Q Length:", self.actionQ.qsize())
             func_name = action["function"]
             func = self.FUNCTION_MAP[func_name]
             args = action["args"]
@@ -285,7 +299,10 @@ def getToDownload(givenList):
 def downloadFromProgress(download_progress, interrupt, action_queue, download_queue):
     assert isinstance(download_progress, DownloadProgress)
     assert isinstance(interrupt, Interrupt)
+    retry_delay = 10
     while True:
+        if interrupt.interrupt:
+            return
         try:
             client = Client(download_progress.serverIP, download_progress.serverPort)
             result = client.requestFile(
@@ -296,13 +313,24 @@ def downloadFromProgress(download_progress, interrupt, action_queue, download_qu
             )
             if result:
                 break
-        except ConnectionError:
-            if download_queue.kill.qsize() != 0:
-                sys.exit(1)
+            # result == False means the download was paused cleanly
+            return
+        except Exception as e:
+            if interrupt.interrupt:
+                return
+            msg = str(e)
+            if msg == INTERRUPTED_SENTINEL:
+                return
             download_progress.download_speed = 0
             download_queue.update()
-            print("Failed to connect, will try again in 10 seconds...")
-            eel.sleep(10)
+            print("Download error for {}: {}. Retrying in {} seconds...".format(
+                download_progress.filename, msg, retry_delay
+            ))
+            for _ in range(retry_delay * 2):
+                if interrupt.interrupt:
+                    return
+                time.sleep(0.5)
+            retry_delay = min(retry_delay * 2, 120)
 
 
 # def downloadQDownloader():

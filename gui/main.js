@@ -1,11 +1,11 @@
-async function loadHosts(){
+async function loadHosts() {
     func = eel.getHosts();
     hosts = await func();
     host_parent = document.getElementById("hosts")
     while (host_parent.firstChild) {
         host_parent.removeChild(host_parent.lastChild);
-      }
-    for(var i = 0; i < hosts.length; i++){
+    }
+    for (var i = 0; i < hosts.length; i++) {
         var host = hosts[i];
         host_elem = document.createElement("div");
         host_elem.classList.add('host');
@@ -16,7 +16,7 @@ async function loadHosts(){
 }
 
 
-function intToByteLengthString(byte_length){
+function intToByteLengthString(byte_length) {
     const BYTE = 1;
     const KILOBYTE = 1028;
     const MEGABYTE = 1000 * KILOBYTE;
@@ -25,110 +25,110 @@ function intToByteLengthString(byte_length){
     byte_length_list = [PENTABYTE, GIGABYTE, MEGABYTE, KILOBYTE, BYTE]
     byte_abbrv = ["PB", "GB", "MB", "KB", "B"]
 
-    if(byte_length == 0){
+    if (byte_length == 0) {
         return "0 B"
     }
-    for(var i = 0; i < byte_length_list.length; i++){
+    for (var i = 0; i < byte_length_list.length; i++) {
         var name = byte_abbrv[i];
         var base_size = byte_length_list[i];
-        if(byte_length > base_size * 3){
-            return String((byte_length / base_size).toFixed(1)) + " " +name;
+        if (byte_length > base_size * 3) {
+            return String((byte_length / base_size).toFixed(1)) + " " + name;
         }
     }
-    
+
 }
 
-async function getUserCount(){
+async function getUserCount() {
     func = eel.users_connected();
     return await func();
 }
 
-function intToTimeString(givenInt){
+function intToTimeString(givenInt) {
     const SECOND = 1;
     const MINUTE = 60 * SECOND;
     const HOUR = 60 * MINUTE;
     const DAY = 24 * HOUR;
     const WEEK = 7 * DAY;
 
-    if(givenInt < 0){
+    if (givenInt < 0) {
         return "Time to complete: Infinite"
     }
-    if(givenInt == 0){
+    if (givenInt == 0) {
         return ""
     }
 
     const NAMES = ["Week", "Day", "Hour", "Minute", "Second"];
     const DENOMINATIONS = [WEEK, DAY, HOUR, MINUTE, SECOND];
     var times = []
-    for(var i = 0; i < NAMES.length; i++){
+    for (var i = 0; i < NAMES.length; i++) {
         var name = NAMES[i];
         var denomination = DENOMINATIONS[i];
-        if(givenInt > denomination){
+        if (givenInt > denomination) {
             count = Math.floor(givenInt / denomination);
             givenInt = givenInt % denomination;
-            if(count > 1){
+            if (count > 1) {
                 name = name + "s";
             }
             times.push(String(count) + " " + name)
         }
-        if(times.length == 2){
+        if (times.length == 2) {
             return "Time to complete: " + times[0] + ", " + times[1];
         }
     }
-    if(times.length == 1){
+    if (times.length == 1) {
         return "Time to complete: " + times[0];
     }
     return "Time to complete: " + times[0] + ", " + times[1];
 }
 
-async function addHost(){
+async function addHost() {
     IP = document.getElementById("addIP").value;
     await eel.addHost(IP);
     loadHosts();
 }
-async function removeHost(IP){
+async function removeHost(IP) {
     await eel.removeHost(IP)
     loadHosts();
 }
 
-function hostingEffects(){
+function hostingEffects() {
     document.getElementById("hostIP").disabled = true;
     document.getElementById("hostIP").placeholder = "";
     document.getElementById("hostingServer").hidden = false;
     document.getElementsByClassName("connected")[0].hidden = false;
 }
 
-async function checkHosting(){
+async function checkHosting() {
     hosting = await eel.checkHosting()();
-    if(hosting){
+    if (hosting) {
         hostingEffects();
     }
 }
 
-function clearFiles(){
+function clearFiles() {
     files_parent = document.getElementById("files");
-    while(files_parent.firstChild){
+    while (files_parent.firstChild) {
         files_parent.removeChild(files_parent.lastChild);
     }
 }
 
-function toggleFolder(folderPath){
+function toggleFolder(folderPath) {
     const escaped = CSS.escape(folderPath);
     const children = document.querySelector(`.folder-children[data-folder="${escaped}"]`);
     const toggle = document.querySelector(`.folder[data-folder="${escaped}"] .folder-toggle`);
-    if(!children || !toggle) return;
+    if (!children || !toggle) return;
     const isOpen = children.style.display !== "none";
     children.style.display = isOpen ? "none" : "block";
     toggle.classList.toggle("open", !isOpen);
 }
 
-function buildTree(paths){
+function buildTree(paths) {
     const root = { folders: {}, files: [] };
-    for(const path of paths){
+    for (const path of paths) {
         const parts = path.split("/");
         let node = root;
-        for(let i = 0; i < parts.length - 1; i++){
-            if(!node.folders[parts[i]])
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (!node.folders[parts[i]])
                 node.folders[parts[i]] = { folders: {}, files: [] };
             node = node.folders[parts[i]];
         }
@@ -137,8 +137,8 @@ function buildTree(paths){
     return root;
 }
 
-function renderTree(node, parentElem, depth, pathPrefix){
-    for(const [name, subtree] of Object.entries(node.folders)){
+function renderTree(node, parentElem, depth, pathPrefix) {
+    for (const [name, subtree] of Object.entries(node.folders)) {
         const fullPrefix = pathPrefix ? pathPrefix + "/" + name : name;
         const indent = depth * 20;
 
@@ -176,7 +176,7 @@ function renderTree(node, parentElem, depth, pathPrefix){
     }
 
     const indent = depth * 20;
-    for(const filePath of node.files){
+    for (const filePath of node.files) {
         const fileName = filePath.split("/").pop();
         const file_elem = document.createElement("div");
         file_elem.id = filePath;
@@ -189,41 +189,41 @@ function renderTree(node, parentElem, depth, pathPrefix){
     }
 }
 
-async function getFiles(ip){
+async function getFiles(ip) {
     files = await eel.getFiles(ip)();
     files_parent = document.getElementById("files");
 
     const tree = buildTree(files);
     renderTree(tree, files_parent, 0, "");
 
-    for(let elem of document.getElementsByClassName("host")){
+    for (let elem of document.getElementsByClassName("host")) {
         elem.classList.remove("disabled");
     }
     return files;
 }
 
-async function addFolderToQueue(folder_name, ip){
+async function addFolderToQueue(folder_name, ip) {
     await eel.addFolderToQueue(folder_name, ip, 5003)();
 }
 
-async function getQueue(){
+async function getQueue() {
     unparsedList = await eel.getQueue()();
     parsedList = [];
-    for(let x of unparsedList){
+    for (let x of unparsedList) {
         parsedList.push(JSON.parse(x))
     }
     return parsedList;
 }
 
-async function addToQueue(file_name, ip){
+async function addToQueue(file_name, ip) {
     await eel.addToQueue(file_name, ip, 5003)();
 }
 
 
-function hostServer(){
+function hostServer() {
     IP = document.getElementById("hostIP").value;
-    eel.hostServer(IP)(function(res){
-        if(res == false){
+    eel.hostServer(IP)(function (res) {
+        if (res == false) {
             document.getElementById("hostIP").disabled = false;
             alert("Failed to start server!")
         }
@@ -231,14 +231,13 @@ function hostServer(){
     hostingEffects();
 }
 
-async function refreshQueue(){
-    await sleep(10);
+async function refreshQueue() {
     q_parent = document.getElementById("queue");
     queue_objs = await getQueue();
-    while(q_parent.firstChild){
+    while (q_parent.firstChild) {
         q_parent.removeChild(q_parent.lastChild);
     }
-    for(let q_json of queue_objs){
+    for (let q_json of queue_objs) {
         q_elem = document.createElement("div");
         q_elem.classList.add("queue_item");
         q_elem.id = q_json['hash'];
@@ -256,7 +255,7 @@ async function refreshQueue(){
         progress_elem = document.createElement("div");
         progress_elem.classList.add("progress");
         q_elem_top.appendChild(q_text_elem);
-        
+
         q_elem_top.classList.add("q_top");
         q_elem_bottom.appendChild(q_server_elem)
         q_elem_bottom.appendChild(progress_elem);
@@ -271,16 +270,16 @@ async function refreshQueue(){
         var downloaded = q_json["downloaded"];
         var speed = q_json['speed'];
         var color = '#790d0d';
-        if(q_json['complete'] == true){
+        if (q_json['complete'] == true) {
             color = '#002D2D';
             downloaded = q_json["filesize"];
             speed = 0
-        }else{
-            if(q_json['paused']){
+        } else {
+            if (q_json['paused']) {
                 pause_or_resume = document.createElement("div");
                 pause_or_resume.innerText = "⏵︎";
                 pause_or_resume.classList.add("pause");
-            }else{
+            } else {
                 pause_or_resume = document.createElement("div");
                 pause_or_resume.innerText = "❚❚";
                 pause_or_resume.classList.add("pause");
@@ -311,29 +310,29 @@ async function refreshQueue(){
         q_elem.appendChild(q_elem_time);
     }
 }
-function sleep (time) {
+function sleep(time) {
     return new Promise((resolve) => setTimeout(resolve, time));
 }
-async function refreshQueueForever(){
-    while(true){
+async function refreshQueueForever() {
+    while (true) {
         await refreshQueue();
         await sleep(1000);
     }
 }
 
-async function pauseQueueAlternate(uniqueHash){
+async function pauseQueueAlternate(uniqueHash) {
     await eel.pauseQueueAlternate(uniqueHash)();
 }
 
-async function removeQueue(uniqueHash){
+async function removeQueue(uniqueHash) {
     await eel.removeFromQueue(uniqueHash)();
 }
 
-async function updateConnected(){
-    while(true){
+async function updateConnected() {
+    while (true) {
         await sleep(1000);
         var count = await getUserCount();
         document.getElementById("connected").innerText = count;
     }
-    
+
 }
