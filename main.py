@@ -4,6 +4,8 @@ from download_queue import *
 import eel
 import multiprocessing
 import ctypes
+import sys
+import os
 
 SERVER_KILL = None
 USERS_CONNECTED = None
@@ -112,7 +114,8 @@ def main():
     DOWNLOAD_QUEUE = DownloadQueue(action_queue, shared_list)
     generate_hash_lists = DownloadQueue.HashListGenerator(shared_list)
     print("Starting eel...")
-    eel.init('gui')
+    gui_path = os.path.join(sys._MEIPASS, 'gui') if getattr(sys, 'frozen', False) else 'gui'
+    eel.init(gui_path)
     eel.start('main.html', block=False, port=0)
     print("Eel complete")
     print("Starting other process...")

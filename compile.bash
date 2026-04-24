@@ -1,1 +1,1 @@
-python -m eel main.py gui --onefile --noconsole --icon=stupidicon.ico --name=justyeetit
+python -m eel main.py gui --onefile --noconsole --icon=stupidicon.ico --name=JustYeetIt
