@@ -10,6 +10,7 @@ import os
 SERVER_KILL = None
 USERS_CONNECTED = None
 SERVER_PROCESS = None
+MANAGER = None
 
 @eel.expose
 def hostServer(server_ip):
@@ -96,15 +97,17 @@ def main():
     global SERVER_KILL
     global USERS_CONNECTED
     global SERVER_PROCESS
+    global MANAGER
     print("Starting setup...")
     hosting = False
     setup()
     print("Setup complete")
     print("Starting queues...")
-    action_queue = multiprocessing.Manager().Queue()
-    shared_list = multiprocessing.Manager().list()
-    SERVER_KILL = multiprocessing.Manager().Queue()
-    USERS_CONNECTED = multiprocessing.Manager().list()
+    MANAGER = multiprocessing.Manager()
+    action_queue = MANAGER.Queue()
+    shared_list = MANAGER.list()
+    SERVER_KILL = MANAGER.Queue()
+    USERS_CONNECTED = MANAGER.list()
     USERS_CONNECTED.append(0)
     action_queue.put({
         "function" : "kill_reference",
@@ -119,7 +122,7 @@ def main():
     eel.start('main.html', block=False, port=0)
     print("Eel complete")
     print("Starting other process...")
-    p = multiprocessing.Process(target=runDownloadQueue, args=(action_queue, shared_list))
+    p = multiprocessing.Process(target=runDownloadQueue, args=(action_queue, shared_list), daemon=True)
     p.start()
     print("Process complete")
     print("Now useable")
@@ -131,9 +134,19 @@ def main():
                 "function" : "stop",
                 "args" : ()
             })
-        if SERVER_PROCESS:
-            SERVER_PROCESS.kill()
-        p.kill()
+        if SERVER_PROCESS and SERVER_PROCESS.is_alive():
+            SERVER_PROCESS.terminate()
+            SERVER_PROCESS.join(timeout=3)
+            if SERVER_PROCESS.is_alive():
+                SERVER_PROCESS.kill()
+                SERVER_PROCESS.join()
+        if p.is_alive():
+            p.terminate()
+            p.join(timeout=3)
+            if p.is_alive():
+                p.kill()
+                p.join()
+        MANAGER.shutdown()
         print("Execution complete")
         
 if __name__ == "__main__":
