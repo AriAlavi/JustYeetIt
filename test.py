@@ -26,6 +26,15 @@ class TestBufferSize(unittest.TestCase):
         expected = [1024, 1024, 1024, 2048, 2048, 2048, 1024 *4, 1024 *4, 1024 *4, 1024 *8 , 1024 *8, 1024 *8]
         self.assertEqual(sizes, expected)
 
+    def test_growth_is_capped_at_256_kib(self):
+        b = BufferSize(128 * 1024)
+
+        for _ in range(9):
+            b.addHistory(1)
+            self.assertLessEqual(b.getSize(), 256 * 1024)
+
+        self.assertEqual(b.getSize(), 256 * 1024)
+
     def test_equilibrium(self):
         b = BufferSize(1024)
         sizes = []

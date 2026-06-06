@@ -39,9 +39,11 @@ class BufferInstance:
 
 
 class BufferSize:
+    MAX_SIZE = 256 * 1024
+
     def __init__(self, initial=1024):
         assert initial % 1024 == 0
-        self.size = initial
+        self.size = min(initial, self.MAX_SIZE)
         self.history = []
         self.history_dict = {}
         self.tries = 0
@@ -75,6 +77,7 @@ class BufferSize:
                     self.size = (self.history[1].size + self.history[0].size) // 2
                 else:
                     self.size = self.history[0].size
+            self.size = min(self.size, self.MAX_SIZE)
         self.calibrations_made += 1
         return self.size
 
